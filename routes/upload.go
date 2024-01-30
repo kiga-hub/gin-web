@@ -15,6 +15,11 @@ type BindFile struct {
 	File  *multipart.FileHeader `form:"file" binding:"required"`
 }
 
+type Request struct {
+	Name string `json:"name"`
+	Data []byte `json:"data"`
+}
+
 func AddUploadRoutes(router *gin.RouterGroup) {
 	router.Static("/home", "./public")
 	router.POST("/upload", func(c *gin.Context) {
@@ -35,5 +40,15 @@ func AddUploadRoutes(router *gin.RouterGroup) {
 		}
 
 		c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully with fields name=%s and email=%s.", file.Filename, bindFile.Name, bindFile.Email))
+	})
+	router.POST("metrics", func(c *gin.Context) {
+		var req Request
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		fmt.Printf("Received request: %s\n", string(req.Data))
+		c.String(http.StatusOK, "Metrics")
 	})
 }
