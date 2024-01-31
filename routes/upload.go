@@ -1,7 +1,10 @@
 package routes
 
 import (
+	"bytes"
+	"compress/zlib"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -48,7 +51,43 @@ func AddUploadRoutes(router *gin.RouterGroup) {
 			return
 		}
 
-		fmt.Printf("Received request: %s\n", string(req.Data))
+		fmt.Printf("Received request len: %d\n", len(req.Data))
+
+		data, _ := DoZlibUnCompress(req.Data)
+
+		fmt.Println(string(data))
 		c.String(http.StatusOK, "Metrics")
 	})
+}
+
+// DoZlibCompress -
+func DoZlibCompress(src []byte) ([]byte, error) {
+	var in bytes.Buffer
+	w, err := zlib.NewWriterLevel(&in, zlib.BestCompression)
+	if err != nil {
+		return nil, err
+	}
+	_, err = w.Write(src)
+	if err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return in.Bytes(), nil
+}
+
+// DoZlibUnCompress -
+func DoZlibUnCompress(compressSrc []byte) ([]byte, error) {
+	b := bytes.NewReader(compressSrc)
+	var out bytes.Buffer
+	r, err := zlib.NewReader(b)
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(&out, r)
+	if err != nil {
+		return nil, err
+	}
+	return out.Bytes(), nil
 }
